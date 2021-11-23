@@ -1,77 +1,101 @@
-import { GetStaticPaths, GetStaticProps } from 'next';
-import { RichText } from 'prismic-dom';
-
-import Prismic from '@prismicio/client'
-
-import { getPrismicClient } from '../../services/prismic';
+/* eslint-disable import/no-unresolved */
+import Prismic from '@prismicio/client';
 import { format } from 'date-fns';
 import ptBR from 'date-fns/locale/pt-BR';
-
-import commonStyles from '../../styles/common.module.scss';
+import { GetStaticPaths, GetStaticProps } from 'next';
+import Head from 'next/head';
+import { useRouter } from 'next/router';
+import { RichText } from 'prismic-dom';
+import { AiOutlineCalendar } from 'react-icons/Ai';
+import { BiTimeFive, BiUser } from 'react-icons/Bi';
+import { getPrismicClient } from '../../services/prismic';
 import styles from './post.module.scss';
 
-import Header from '../../components/Header';
-
-import { FiCalendar, FiUser, FiClock } from 'react-icons/fi';
-import { useRouter } from 'next/router';
-
 interface Post {
-  updatedAt: string | null;
-  title: string;
-  time: number;
-  banner: {
-    url: string;
-  };
-  author: string;
-  content: {
-    heading: string;
-    body: {
-      text: string;
+  first_publication_date: string | null;
+  data: {
+    title: string;
+    banner: {
+      url: string;
+    };
+    author: string;
+    content: {
+      heading: string;
+      body: {
+        text: string;
+      }[];
     }[];
-  }[];
+  };
 }
 
 interface PostProps {
   post: Post;
 }
 
-export default function Post({ post }: PostProps) {
+export default function Post({ post }: PostProps): JSX.Element {
   const router = useRouter();
 
   if (router.isFallback) {
     return (
       <>
+        <Head>
+          <title>{post.data.title} | SpaceTravelling</title>
+        </Head>
+
         <div>Carregando...</div>
       </>
     );
   }
 
+  function getWordCount(): number {
+    const bodyText = post.data.content.reduce((previous, current) => {
+      const text = RichText.asText(current.body);
+      if (!text) {
+        return previous;
+      }
+      return previous.concat(text);
+    }, '');
+
+    const postWords = bodyText.split(' ');
+
+    return postWords.length;
+  }
+
+  const date = format(new Date(post.first_publication_date), 'dd MMM yyyy', {
+    locale: ptBR,
+  });
+
+  const tempo = Math.ceil(getWordCount() / 200);
+
   return (
     <>
-      <Header />
+      <Head>
+        <title>Home | spacetraveling.</title>
+      </Head>
 
-      <div className={styles.banner}>
-        {post.banner.url && (
+      <main className={styles.container}>
+        {post.data.banner.url && (
           <img
-            src={post.banner.url}
-            alt="banner"
+            alt="logo"
+            src={post.data.banner.url}
             width={1440}
             height={400}
           />
         )}
-      </div>
-      <div className={styles.main}>
-        <div className={styles.title}>{post.title}</div>
-        <div className={styles.posthead}>
-          <FiCalendar size="20" />
-          <time>{post.updatedAt}</time>
-          <FiUser size="20" />
-          <span>{post.author}</span>
-          <FiClock size="20" />
-          <span>{post.time} min</span>
-        </div>
-        <div className={styles.postbody}>
-          {post.content.map(content => (
+        <strong>{post.data.title}</strong>
+        <time>
+          <AiOutlineCalendar className={styles.icons} />
+
+          <p>{date}</p>
+
+          <BiUser className={styles.icons} />
+          <p>{post.data.author}</p>
+
+          <BiTimeFive className={styles.icons} />
+          <p>{tempo} min</p>
+        </time>
+        <div>
+          {post.data.content.map(content => (
             <article key={content.heading} className={styles.postText}>
               <h2>{content.heading}</h2>
               <div
@@ -82,46 +106,63 @@ export default function Post({ post }: PostProps) {
             </article>
           ))}
         </div>
-      </div>
+      </main>
     </>
-  )
+  );
 }
 
 export const getStaticPaths: GetStaticPaths = async () => {
   const prismic = getPrismicClient();
   const posts = await prismic.query(
-    Prismic.predicates.at('document.type', 'ignews'), { pageSize: 1 }
+    Prismic.predicates.at('document.type', 'post'),
+    {
+      lang: 'pt-br',
+      fetch: ['next_page', 'post.title', 'post.subtitle', 'post.author'],
+      pageSize: 5,
+    }
   );
 
-  const paths = []
-  posts.results.map(p => {
-    paths.push({ params: { slug: p.uid } })
-  })
+  const paths = [];
 
-  return { paths, fallback: true }
-};
-
-export const getStaticProps = async ({ params }) => {
-  const prismic = getPrismicClient();
-  const response = await prismic.getByUID('ignews', params.slug, {});
-
-
-  const fullText = response.data.content.reduce((prev, curr) => {
-    return prev += `${curr.heading} ${curr.body.map(b => b.text)}`;
-  }, '')
-  const time = Math.ceil(fullText.split(' ').length / 200);
+  posts.results.map(post => {
+    paths.push({
+      params: {
+        slug: post.uid,
+      },
+    });
+    return post;
+  });
 
   return {
-    props: {
-      post: {
-        slug: response.uid,
-        title: response.data.title,
-        author: response.data.author,
-        content: response.data.content,
-        banner: response.data.banner,
-        updatedAt: format(new Date(response.last_publication_date), "dd MMM yyyy", { locale: ptBR, }),
-        time
-      }
-    }
-  }
+    paths,
+    fallback: true,
+  };
+};
+
+export const getStaticProps: GetStaticProps = async ({ params }) => {
+  const { slug } = params;
+  const slugString = String(slug);
+  const prismic = getPrismicClient();
+  const response = await prismic.getByUID('post', slugString, {
+    lang: 'pt-br',
+  });
+
+  const post = {
+    uid: response.uid,
+    first_publication_date: response.first_publication_date,
+    data: {
+      title: response.data.title,
+      subtitle: response.data.subtitle,
+      banner: {
+        url: response.data.banner.url,
+      },
+      author: response.data.author,
+      content: response.data.content,
+    },
+  };
+
+  return {
+    props: { post },
+    redirect: 60 * 30,
+  };
 };
