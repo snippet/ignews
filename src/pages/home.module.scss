@@ -1,1 +1,56 @@
-// TODO
+.main {
+
+}
+
+.posts {
+  max-width: 720px;
+  margin: 0 auto 0;
+
+  a {
+    display: block;
+    // margin-top: 2rem;
+    color: var(--body);
+    font-size: 14px;
+
+    & + a {
+      padding-top: 2rem;
+    }
+
+    .title {
+      color: #f8f8f8;
+      font-size: 28px;
+    }
+
+    .expect {
+      font-size: 18px;
+      padding: 10px 0;
+    }
+
+    .details {
+      margin-top: 10px;
+      color: #BBBBBB;
+
+      .updatedAt, .author {
+        // border:1px solid red;
+        display: inline;
+        margin-right: 15px;
+
+        span, time, svg{
+          line-height: 20px;
+          vertical-align: middle;
+          margin-right: 10px;
+        }
+      }
+
+
+
+    }
+  }
+
+  .nextpage {
+    color:#FF57B2;
+    font-weight: 700;
+    cursor: pointer;
+    padding-top: 4rem;
+  }
+}

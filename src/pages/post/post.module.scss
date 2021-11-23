@@ -1,1 +1,42 @@
-// TODO
+.banner {
+  margin: 0 auto;
+  max-width: 1440px;
+  img {
+    width: 100%;
+
+  }
+}
+
+.main {
+  max-width: 720px;
+  margin: 5rem auto 0;
+}
+
+.title {
+  color:#F8F8F8;
+  font-size: 48px;
+  font-weight: 700;
+}
+
+.posthead {
+  margin: 1rem 0;
+  color: #BBBBBB;
+  font-size: 14px;
+
+  time, span, svg {
+    line-height: 20px;
+    vertical-align: middle;
+  }
+
+  svg {
+    margin-right: 7px;
+  }
+
+  time, span {
+    margin-right: 23px;
+  }
+}
+
+.postbody {
+  color: #F8F8F8;
+}
